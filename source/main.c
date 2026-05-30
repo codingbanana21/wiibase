@@ -29,6 +29,8 @@ bool project_running = true;
 
 int ui_number = 0;
 int background_color = 0;
+int frame = 0;
+
 
 int main(int argc, char **argv) {
     // setup
@@ -42,11 +44,20 @@ int main(int argc, char **argv) {
     tex_shot = GRRLIB_LoadTexture(shot_png);
     GRRLIB_SetMidHandle(tex_shot, true);
 
+    GRRLIB_Camera3dSettings(0.0f,3.0f,5.0f, 0,1,0, 0,-0.4,0);
+
+	GRRLIB_Camera3dSettings(500, 500, 0, // position
+							0,1,0,
+							0, 0, 0 // look at
+							);
+
     // wiimote setup
     WPAD_Init();
     WPAD_SetDataFormat(WPAD_CHAN_ALL, WPAD_FMT_BTNS_ACC_IR);
 	
     while (project_running) {
+        frame++;
+
         WPAD_ScanPads();
 
         for (int wiimote = 0; wiimote <= 3; wiimote++) {
@@ -92,6 +103,9 @@ int main(int argc, char **argv) {
             }
         }
 
+        // background
+		GRRLIB_2dMode();
+		// GRRLIB_Rectangle(0, 0, 640, 480, GRRLIB_BLUE, 1);
         if (background_color == 0) {
             GRRLIB_FillScreen(GRRLIB_BLUE);
         }
@@ -102,7 +116,37 @@ int main(int argc, char **argv) {
             GRRLIB_FillScreen(GRRLIB_RED);
         }
 
-        draw_wiimotes();
+        GRRLIB_3dMode(0.1, 1000, 45, 0,1);
+        GRRLIB_SetLightAmbient(0x111111FF);
+        GRRLIB_SetLightDiff(0, (guVector){320.0f, 240.0f, 300.0f}, 20.0f, 1.0f, 0xCCCCCCFF);
+
+        for (int i=0;i<5;i++) {
+            for (int j=0;j<5;j++) {
+                for (int k=0;k<5;k++) {
+                    GRRLIB_ObjectViewBegin();
+                    GRRLIB_ObjectViewRotate(0, 0 + frame, 0);
+                    GRRLIB_ObjectViewScale(50, 50, 50);
+                    GRRLIB_ObjectViewTrans(200 + i * 50, 0 + k * 50, 0 + j * 50);
+                    GRRLIB_ObjectViewEnd();
+                    // GRRLIB_DrawSphere(0.5, 9, 9, 1, 0xFF0000FF);
+                    if (k == 4) {
+                        GRRLIB_DrawCube(1, 1, GRRLIB_GREEN);
+                    }
+                    else {
+                        GRRLIB_DrawCube(1, 1, 0x886400FF);
+
+                    }
+                }
+            }
+        }
+
+        // GRRLIB_Camera3dSettings(320, 240, 600, // position
+        //                 0,1 + frame * 0.1,0,
+        //                 320, 240, 0 // look at
+        //                 );
+
+        // UI
+        GRRLIB_2dMode();
         
         if (ui_number == 0) {
             GRRLIB_Printf(250, 200, tex_BMfont5, GRRLIB_WHITE, 1, "> Start");
@@ -117,6 +161,7 @@ int main(int argc, char **argv) {
         else {
             GRRLIB_Printf(250, 225, tex_BMfont5, GRRLIB_WHITE, 1, "background_color %d", background_color);
         }
+        draw_wiimotes();
 
         GRRLIB_Render();
     }
