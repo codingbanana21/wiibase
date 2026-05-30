@@ -4,6 +4,7 @@
 #include <wiiuse/wpad.h>
 #include <ogc/system.h>
 #include <stdlib.h>
+#include <math.h>
 
 #include "../source/globals.h"
 
@@ -31,6 +32,14 @@ int ui_number = 0;
 int background_color = 0;
 int frame = 0;
 
+float camera_x = 0;
+float camera_y = 800;
+float camera_z = 0;
+float camera_rot_x = 0;
+float camera_rot_y = 7;
+
+int nodes[1000];
+
 
 int main(int argc, char **argv) {
     // setup
@@ -46,14 +55,13 @@ int main(int argc, char **argv) {
 
     GRRLIB_Camera3dSettings(0.0f,3.0f,5.0f, 0,1,0, 0,-0.4,0);
 
-	GRRLIB_Camera3dSettings(500, 500, 0, // position
-							0,1,0,
-							0, 0, 0 // look at
-							);
-
     // wiimote setup
     WPAD_Init();
     WPAD_SetDataFormat(WPAD_CHAN_ALL, WPAD_FMT_BTNS_ACC_IR);
+
+    for (int i=0;i<1000;i++) {
+        nodes[i] = rand() % 3;
+    }
 	
     while (project_running) {
         frame++;
@@ -66,41 +74,18 @@ int main(int argc, char **argv) {
             }
         }
 
-        if (WPAD_ButtonsDown(0) & WPAD_BUTTON_DOWN) {
-            ui_number++;
+        if (WPAD_ButtonsHeld(0) & WPAD_BUTTON_RIGHT) {
+            camera_rot_x -= 0.01;
         }
-        if (WPAD_ButtonsDown(0) & WPAD_BUTTON_UP) {
-            ui_number--;
-        }
-
-        if (ui_number > 1) {
-            ui_number = 0;
-        }
-        if (ui_number < 0) {
-            ui_number = 1;
-        }
-        
-        if (ui_number == 1) {
-            if (WPAD_ButtonsDown(0) & WPAD_BUTTON_RIGHT) {
-                background_color++;
-            }
-            if (WPAD_ButtonsDown(0) & WPAD_BUTTON_LEFT) {
-                background_color--;
-            }
-
-            if (background_color > 2) {
-                background_color = 0;
-            }
-
-            else if (background_color < 0) {
-                background_color = 2;
-            }
+        if (WPAD_ButtonsHeld(0) & WPAD_BUTTON_LEFT) {
+            camera_rot_x += 0.01;
         }
 
-        if (WPAD_ButtonsDown(0) & (WPAD_BUTTON_LEFT | WPAD_BUTTON_RIGHT)) {
-            if (ui_number == 0) {
-                project_running = false;
-            }
+        if (WPAD_ButtonsHeld(0) & WPAD_BUTTON_UP) {
+            camera_rot_y += 0.03;
+        }
+        if (WPAD_ButtonsHeld(0) & WPAD_BUTTON_DOWN) {
+            camera_rot_y -= 0.03;
         }
 
         // background
@@ -118,52 +103,90 @@ int main(int argc, char **argv) {
 
         GRRLIB_3dMode(0.1, 1000, 45, 0,1);
         GRRLIB_SetLightAmbient(0x111111FF);
-        GRRLIB_SetLightDiff(0, (guVector){320.0f, 240.0f, 300.0f}, 20.0f, 1.0f, 0xCCCCCCFF);
+        GRRLIB_SetLightDiff(0, (guVector){0.0f, 500.0f, 0.0f}, 20.0f, 1.0f, 0xCCCCCCFF);
 
-        for (int i=0;i<5;i++) {
-            for (int j=0;j<5;j++) {
-                for (int k=0;k<5;k++) {
+        int node_number = 0;
+        for (int i=0;i<10;i++) {
+            for (int j=0;j<10;j++) {
+                for (int k=0;k<10;k++) {
                     GRRLIB_ObjectViewBegin();
-                    GRRLIB_ObjectViewRotate(0, 0 + frame, 0);
+                    GRRLIB_ObjectViewRotate(0, 0, 0);
                     GRRLIB_ObjectViewScale(50, 50, 50);
                     GRRLIB_ObjectViewTrans(200 + i * 50, 0 + k * 50, 0 + j * 50);
                     GRRLIB_ObjectViewEnd();
                     // GRRLIB_DrawSphere(0.5, 9, 9, 1, 0xFF0000FF);
-                    if (k == 4) {
+
+                    if (nodes[node_number] == 1) {
                         GRRLIB_DrawCube(1, 1, GRRLIB_GREEN);
                     }
-                    else {
+                    else if (nodes[node_number] == 2) {
                         GRRLIB_DrawCube(1, 1, 0x886400FF);
-
                     }
+                    node_number++;
                 }
             }
         }
 
-        // GRRLIB_Camera3dSettings(320, 240, 600, // position
-        //                 0,1 + frame * 0.1,0,
-        //                 320, 240, 0 // look at
-        //                 );
+        GRRLIB_Camera3dSettings(camera_x, camera_y, camera_z, // position
+                        0, 1, 0,
+                        sin(camera_rot_x) * 100, camera_rot_y * 100, cos(camera_rot_x) * 100 // look at
+                        );
 
         // UI
         GRRLIB_2dMode();
         
-        if (ui_number == 0) {
-            GRRLIB_Printf(250, 200, tex_BMfont5, GRRLIB_WHITE, 1, "> Start");
-        }
-        else {
-            GRRLIB_Printf(250, 200, tex_BMfont5, GRRLIB_WHITE, 1, "Start");
-        }
-
-        if (ui_number == 1) {
-            GRRLIB_Printf(250, 225, tex_BMfont5, GRRLIB_WHITE, 1, "> background_color %d", background_color);
-        }
-        else {
-            GRRLIB_Printf(250, 225, tex_BMfont5, GRRLIB_WHITE, 1, "background_color %d", background_color);
-        }
         draw_wiimotes();
-
+        
         GRRLIB_Render();
+        // if (ui_number == 0) {
+        //     GRRLIB_Printf(250, 200, tex_BMfont5, GRRLIB_WHITE, 1, "> Start");
+        // }
+        // else {
+        //     GRRLIB_Printf(250, 200, tex_BMfont5, GRRLIB_WHITE, 1, "Start");
+        // }
+
+        // if (ui_number == 1) {
+        //     GRRLIB_Printf(250, 225, tex_BMfont5, GRRLIB_WHITE, 1, "> background_color %d", background_color);
+        // }
+        // else {
+        //     GRRLIB_Printf(250, 225, tex_BMfont5, GRRLIB_WHITE, 1, "background_color %d", background_color);
+        // }
+        // if (WPAD_ButtonsDown(0) & WPAD_BUTTON_DOWN) {
+        //     ui_number++;
+        // }
+        // if (WPAD_ButtonsDown(0) & WPAD_BUTTON_UP) {
+        //     ui_number--;
+        // }
+    
+        // if (ui_number > 1) {
+        //     ui_number = 0;
+        // }
+        // if (ui_number < 0) {
+        //     ui_number = 1;
+        // }
+        
+        // if (ui_number == 1) {
+        //     if (WPAD_ButtonsDown(0) & WPAD_BUTTON_RIGHT) {
+        //         background_color++;
+        //     }
+        //     if (WPAD_ButtonsDown(0) & WPAD_BUTTON_LEFT) {
+        //         background_color--;
+        //     }
+    
+        //     if (background_color > 2) {
+        //         background_color = 0;
+        //     }
+    
+        //     else if (background_color < 0) {
+        //         background_color = 2;
+        //     }
+        // }
+    
+        // if (WPAD_ButtonsDown(0) & (WPAD_BUTTON_LEFT | WPAD_BUTTON_RIGHT)) {
+        //     if (ui_number == 0) {
+        //         project_running = false;
+        //     }
+        // }
     }
 
     GRRLIB_FreeTexture(tex_shot);
