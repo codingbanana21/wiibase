@@ -67,8 +67,24 @@ int main(int argc, char **argv) {
         nodes[i] = 0;
     }
 
-    for (int i=0;i<MAP_SIZE;i++) {
-        nodes[i] = rand() % 3;
+    int node_number = 0;
+        
+    for (int i=0;i<8;i++) {
+        for (int j=0;j<8;j++) {
+            int hight = rand() % 6 + 2;
+            node_number += 8 - hight;
+
+            nodes[node_number] = 1;
+            node_number++;
+            hight--;
+
+            while (hight > 0) {
+                // nodes[node_number] = rand() % 2 + 1;
+                nodes[node_number] = 2;
+                node_number++;
+                hight--;
+            }
+        }
     }
 	
     while (project_running) {
@@ -101,6 +117,13 @@ int main(int argc, char **argv) {
             camera_rot_y -= 0.03f;
         }
 
+        GRRLIB_Camera3dSettings(camera_x, camera_y, camera_z, // pos
+                        0, 1, 0,
+                        camera_x + sin(camera_rot_x), 
+                        camera_y + camera_rot_y, 
+                        camera_z + cos(camera_rot_x) // look at
+                        );
+
         // background
 		GRRLIB_2dMode();
         if (background_color == 0) {
@@ -117,7 +140,8 @@ int main(int argc, char **argv) {
         GRRLIB_SetLightAmbient(0x111111FF);
         GRRLIB_SetLightDiff(0, (guVector){0.0f, 256.0f, 0.0f}, 20.0f, 1.0f, 0xCCCCCCFF);
 
-        int node_number = 0;
+        node_number = 0;
+
         for (int i=0;i<8;i++) {
             for (int j=0;j<8;j++) {
                 for (int k=0;k<8;k++) {
@@ -128,9 +152,9 @@ int main(int argc, char **argv) {
                     }
                     
                     GRRLIB_ObjectViewBegin();
-                    GRRLIB_ObjectViewRotate(0, frame, 0);
+                    GRRLIB_ObjectViewRotate(0, 0, 0);
                     GRRLIB_ObjectViewScale(16, 16, 16);
-                    GRRLIB_ObjectViewTrans(i * 16 - 64,k * 16, j * 16 - 64);
+                    GRRLIB_ObjectViewTrans(i * 16 - 64, k * -16, j * 16 - 64);
                     GRRLIB_ObjectViewEnd();
 
                     if (nodes[node_number] == 1) {
@@ -142,13 +166,6 @@ int main(int argc, char **argv) {
                 }
             }
         }
-
-        GRRLIB_Camera3dSettings(camera_x, camera_y, camera_z, // pos
-                        0, 1, 0,
-                        camera_x + sin(camera_rot_x), 
-                        camera_y + camera_rot_y, 
-                        camera_z + cos(camera_rot_x) // look at
-                        );
 
         // UI
         GRRLIB_2dMode();
