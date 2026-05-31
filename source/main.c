@@ -32,13 +32,13 @@ int ui_number = 0;
 int background_color = 0;
 int frame = 0;
 
-float camera_x = 0;
-float camera_y = 800;
-float camera_z = 0;
-float camera_rot_x = 0;
-float camera_rot_y = 7;
+float camera_x = 0.0f;
+float camera_y = 600.0f;
+float camera_z = 0.0f;
+float camera_rot_x = 0.5f;
+float camera_rot_y = 5.0f;
 
-int nodes[1000];
+uint8_t nodes[MAP_SIZE];
 
 
 int main(int argc, char **argv) {
@@ -59,7 +59,14 @@ int main(int argc, char **argv) {
     WPAD_Init();
     WPAD_SetDataFormat(WPAD_CHAN_ALL, WPAD_FMT_BTNS_ACC_IR);
 
-    for (int i=0;i<1000;i++) {
+    
+    for (int i=0;i<60;i++) {
+        GRRLIB_FillScreen(GRRLIB_BLACK);
+        GRRLIB_Printf(250, 200, tex_BMfont5, GRRLIB_WHITE, 1, "loading...");
+        GRRLIB_Render();
+    }
+
+    for (int i=0;i<MAP_SIZE;i++) {
         nodes[i] = rand() % 3;
     }
 	
@@ -69,23 +76,28 @@ int main(int argc, char **argv) {
         WPAD_ScanPads();
 
         for (int wiimote = 0; wiimote <= 3; wiimote++) {
+            WPADData* data = WPAD_Data(wiimote);
+
+            if(!data->data_present) {
+                continue;
+            }
             if (WPAD_ButtonsDown(wiimote) & WPAD_BUTTON_HOME) {
                 project_running = false;
             }
         }
 
         if (WPAD_ButtonsHeld(0) & WPAD_BUTTON_RIGHT) {
-            camera_rot_x -= 0.01;
+            camera_rot_x -= 0.01f;
         }
         if (WPAD_ButtonsHeld(0) & WPAD_BUTTON_LEFT) {
-            camera_rot_x += 0.01;
+            camera_rot_x += 0.01f;
         }
 
         if (WPAD_ButtonsHeld(0) & WPAD_BUTTON_UP) {
-            camera_rot_y += 0.03;
+            camera_rot_y += 0.03f;
         }
         if (WPAD_ButtonsHeld(0) & WPAD_BUTTON_DOWN) {
-            camera_rot_y -= 0.03;
+            camera_rot_y -= 0.03f;
         }
 
         // background
@@ -106,11 +118,16 @@ int main(int argc, char **argv) {
         GRRLIB_SetLightDiff(0, (guVector){0.0f, 500.0f, 0.0f}, 20.0f, 1.0f, 0xCCCCCCFF);
 
         int node_number = 0;
-        for (int i=0;i<10;i++) {
-            for (int j=0;j<10;j++) {
-                for (int k=0;k<10;k++) {
+        for (int i=0;i<8;i++) {
+            for (int j=0;j<8;j++) {
+                for (int k=0;k<8;k++) {
+                    node_number++;
+                    if (nodes[node_number] == 0) {
+                        continue;
+                    }
+                    
                     GRRLIB_ObjectViewBegin();
-                    GRRLIB_ObjectViewRotate(0, 0, 0);
+                    GRRLIB_ObjectViewRotate(0, frame, 0);
                     GRRLIB_ObjectViewScale(50, 50, 50);
                     GRRLIB_ObjectViewTrans(200 + i * 50, 0 + k * 50, 0 + j * 50);
                     GRRLIB_ObjectViewEnd();
@@ -122,7 +139,6 @@ int main(int argc, char **argv) {
                     else if (nodes[node_number] == 2) {
                         GRRLIB_DrawCube(1, 1, 0x886400FF);
                     }
-                    node_number++;
                 }
             }
         }
