@@ -32,9 +32,9 @@ int ui_number = 0;
 int background_color = 0;
 int frame = 0;
 
-float camera_x = 100.0f;
-float camera_y = 256.0f;
-float camera_z = 100.0f;
+float camera_x = 0.0f;
+float camera_y = 128.0f;
+float camera_z = 0.0f;
 float camera_rot_x = 0.0f;
 float camera_rot_y = 0.0f;
 
@@ -88,10 +88,10 @@ int main(int argc, char **argv) {
         }
 
         if (WPAD_ButtonsHeld(0) & WPAD_BUTTON_RIGHT) {
-            camera_rot_x -= 0.01f;
+            camera_rot_x -= 0.015f;
         }
         if (WPAD_ButtonsHeld(0) & WPAD_BUTTON_LEFT) {
-            camera_rot_x += 0.01f;
+            camera_rot_x += 0.015f;
         }
 
         if (WPAD_ButtonsHeld(0) & WPAD_BUTTON_UP) {
@@ -103,7 +103,6 @@ int main(int argc, char **argv) {
 
         // background
 		GRRLIB_2dMode();
-		// GRRLIB_Rectangle(0, 0, 640, 480, GRRLIB_BLUE, 1);
         if (background_color == 0) {
             GRRLIB_FillScreen(GRRLIB_BLUE);
         }
@@ -116,23 +115,23 @@ int main(int argc, char **argv) {
 
         GRRLIB_3dMode(0.1, 1000, 45, 0,1);
         GRRLIB_SetLightAmbient(0x111111FF);
-        GRRLIB_SetLightDiff(0, (guVector){0.0f, 500.0f, 0.0f}, 20.0f, 1.0f, 0xCCCCCCFF);
+        GRRLIB_SetLightDiff(0, (guVector){0.0f, 256.0f, 0.0f}, 20.0f, 1.0f, 0xCCCCCCFF);
 
         int node_number = 0;
         for (int i=0;i<8;i++) {
             for (int j=0;j<8;j++) {
                 for (int k=0;k<8;k++) {
                     node_number++;
+
                     if (nodes[node_number] == 0) {
                         continue;
                     }
                     
                     GRRLIB_ObjectViewBegin();
                     GRRLIB_ObjectViewRotate(0, frame, 0);
-                    GRRLIB_ObjectViewScale(32, 32, 32);
-                    GRRLIB_ObjectViewTrans(200 + i * 32, 0 + k * 32, 0 + j * 32);
+                    GRRLIB_ObjectViewScale(16, 16, 16);
+                    GRRLIB_ObjectViewTrans(i * 16 - 64,k * 16, j * 16 - 64);
                     GRRLIB_ObjectViewEnd();
-                    // GRRLIB_DrawSphere(0.5, 9, 9, 1, 0xFF0000FF);
 
                     if (nodes[node_number] == 1) {
                         GRRLIB_DrawCube(1, 1, GRRLIB_GREEN);
@@ -144,7 +143,7 @@ int main(int argc, char **argv) {
             }
         }
 
-        GRRLIB_Camera3dSettings(camera_x, camera_y, camera_z, // position
+        GRRLIB_Camera3dSettings(camera_x, camera_y, camera_z, // pos
                         0, 1, 0,
                         camera_x + sin(camera_rot_x), 
                         camera_y + camera_rot_y, 
@@ -153,9 +152,8 @@ int main(int argc, char **argv) {
 
         // UI
         GRRLIB_2dMode();
-        
         draw_wiimotes();
-        
+
         GRRLIB_Render();
     }
 
