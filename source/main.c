@@ -32,11 +32,11 @@ int ui_number = 0;
 int background_color = 0;
 int frame = 0;
 
-float camera_x = 0.0f;
-float camera_y = 600.0f;
-float camera_z = 0.0f;
-float camera_rot_x = 0.5f;
-float camera_rot_y = 5.0f;
+float camera_x = 100.0f;
+float camera_y = 256.0f;
+float camera_z = 100.0f;
+float camera_rot_x = 0.0f;
+float camera_rot_y = 0.0f;
 
 uint8_t nodes[MAP_SIZE];
 
@@ -59,11 +59,12 @@ int main(int argc, char **argv) {
     WPAD_Init();
     WPAD_SetDataFormat(WPAD_CHAN_ALL, WPAD_FMT_BTNS_ACC_IR);
 
-    
-    for (int i=0;i<60;i++) {
-        GRRLIB_FillScreen(GRRLIB_BLACK);
-        GRRLIB_Printf(250, 200, tex_BMfont5, GRRLIB_WHITE, 1, "loading...");
-        GRRLIB_Render();
+    GRRLIB_FillScreen(GRRLIB_BLACK);
+    GRRLIB_Printf(250, 200, tex_BMfont5, GRRLIB_WHITE, 1, "loading...");
+    GRRLIB_Render();
+
+    for (int i=0;i<MAP_SIZE;i++) {
+        nodes[i] = 0;
     }
 
     for (int i=0;i<MAP_SIZE;i++) {
@@ -128,8 +129,8 @@ int main(int argc, char **argv) {
                     
                     GRRLIB_ObjectViewBegin();
                     GRRLIB_ObjectViewRotate(0, frame, 0);
-                    GRRLIB_ObjectViewScale(50, 50, 50);
-                    GRRLIB_ObjectViewTrans(200 + i * 50, 0 + k * 50, 0 + j * 50);
+                    GRRLIB_ObjectViewScale(32, 32, 32);
+                    GRRLIB_ObjectViewTrans(200 + i * 32, 0 + k * 32, 0 + j * 32);
                     GRRLIB_ObjectViewEnd();
                     // GRRLIB_DrawSphere(0.5, 9, 9, 1, 0xFF0000FF);
 
@@ -145,7 +146,9 @@ int main(int argc, char **argv) {
 
         GRRLIB_Camera3dSettings(camera_x, camera_y, camera_z, // position
                         0, 1, 0,
-                        sin(camera_rot_x) * 100, camera_rot_y * 100, cos(camera_rot_x) * 100 // look at
+                        camera_x + sin(camera_rot_x), 
+                        camera_y + camera_rot_y, 
+                        camera_z + cos(camera_rot_x) // look at
                         );
 
         // UI
@@ -154,55 +157,6 @@ int main(int argc, char **argv) {
         draw_wiimotes();
         
         GRRLIB_Render();
-        // if (ui_number == 0) {
-        //     GRRLIB_Printf(250, 200, tex_BMfont5, GRRLIB_WHITE, 1, "> Start");
-        // }
-        // else {
-        //     GRRLIB_Printf(250, 200, tex_BMfont5, GRRLIB_WHITE, 1, "Start");
-        // }
-
-        // if (ui_number == 1) {
-        //     GRRLIB_Printf(250, 225, tex_BMfont5, GRRLIB_WHITE, 1, "> background_color %d", background_color);
-        // }
-        // else {
-        //     GRRLIB_Printf(250, 225, tex_BMfont5, GRRLIB_WHITE, 1, "background_color %d", background_color);
-        // }
-        // if (WPAD_ButtonsDown(0) & WPAD_BUTTON_DOWN) {
-        //     ui_number++;
-        // }
-        // if (WPAD_ButtonsDown(0) & WPAD_BUTTON_UP) {
-        //     ui_number--;
-        // }
-    
-        // if (ui_number > 1) {
-        //     ui_number = 0;
-        // }
-        // if (ui_number < 0) {
-        //     ui_number = 1;
-        // }
-        
-        // if (ui_number == 1) {
-        //     if (WPAD_ButtonsDown(0) & WPAD_BUTTON_RIGHT) {
-        //         background_color++;
-        //     }
-        //     if (WPAD_ButtonsDown(0) & WPAD_BUTTON_LEFT) {
-        //         background_color--;
-        //     }
-    
-        //     if (background_color > 2) {
-        //         background_color = 0;
-        //     }
-    
-        //     else if (background_color < 0) {
-        //         background_color = 2;
-        //     }
-        // }
-    
-        // if (WPAD_ButtonsDown(0) & (WPAD_BUTTON_LEFT | WPAD_BUTTON_RIGHT)) {
-        //     if (ui_number == 0) {
-        //         project_running = false;
-        //     }
-        // }
     }
 
     GRRLIB_FreeTexture(tex_shot);
