@@ -30,20 +30,19 @@ bool is_cube_visible(float cube_x, float cube_y, float cube_z);
 bool project_running = true;
 
 int ui_number = 0;
-int background_color = 0;
 int frame = 0;
 
 // camera setup
 float camera_x = 0.0f;
-float camera_y = 16.0f;
+float camera_y = 0.0f;
 float camera_z = 0.0f;
 
 float camera_rot_x = 0.0f;
-float camera_rot_y = 0.0f;
+float camera_rot_y = 1.0f;
 
-float camera_look_x = 0.0f;
-float camera_look_y = 0.0f;
-float camera_look_z = 0.0f;
+float camera_look_x;
+float camera_look_y;
+float camera_look_z;
 
 
 uint8_t nodes[MAP_SIZE];
@@ -77,8 +76,8 @@ int main(int argc, char **argv) {
 
     int node_number = 0;
         
-    for (int i=0;i<16;i++) {
-        for (int j=0;j<16;j++) {
+    for (int i=0;i<32;i++) {
+        for (int j=0;j<32;j++) {
             int hight = rand() % 5 + 2;
             // int hight = 7;
             node_number += 8 - hight;
@@ -113,22 +112,27 @@ int main(int argc, char **argv) {
         }
 
         if (WPAD_ButtonsHeld(0) & WPAD_BUTTON_RIGHT) {
-            camera_rot_x -= 0.015f;
+            camera_rot_x -= 0.02f;
         }
-        if (WPAD_ButtonsHeld(0) & WPAD_BUTTON_LEFT) {
-            camera_rot_x += 0.015f;
+        else if (WPAD_ButtonsHeld(0) & WPAD_BUTTON_LEFT) {
+            camera_rot_x += 0.02f;
         }
 
         if (WPAD_ButtonsHeld(0) & WPAD_BUTTON_UP) {
-            camera_rot_y += 0.03f;
+            camera_rot_y += 0.02f;
         }
-        if (WPAD_ButtonsHeld(0) & WPAD_BUTTON_DOWN) {
-            camera_rot_y -= 0.03f;
+        else if (WPAD_ButtonsHeld(0) & WPAD_BUTTON_DOWN) {
+            camera_rot_y -= 0.02f;
         }
 
-        camera_look_x = sin(camera_rot_x);
-        camera_look_y = camera_rot_y;
-        camera_look_z = cos(camera_rot_x);
+        if (WPAD_ButtonsHeld(0) & WPAD_BUTTON_A) {
+            camera_x += camera_look_x;
+            camera_z += camera_look_z;
+        }
+
+        camera_look_x = sin(camera_rot_x) * cos(camera_rot_y);
+        camera_look_y = sin(camera_rot_y);
+        camera_look_z = cos(camera_rot_x) * cos(camera_rot_y);
 
         GRRLIB_Camera3dSettings(camera_x, camera_y, camera_z, // pos
                         0, 1, 0,
@@ -139,36 +143,37 @@ int main(int argc, char **argv) {
 
         // background
 		GRRLIB_2dMode();
-        if (background_color == 0) {
-            GRRLIB_FillScreen(GRRLIB_BLUE);
-        }
-        else if (background_color == 1) {
-            GRRLIB_FillScreen(GRRLIB_GREEN);
-        }
-        else if (background_color == 2) {
-            GRRLIB_FillScreen(GRRLIB_RED);
-        }
+        GRRLIB_FillScreen(GRRLIB_BLUE);
 
-        GRRLIB_3dMode(0.1, 1000, 45, 0,1);
+        GRRLIB_3dMode(0.1, 1000, 70, 0,1);
         GRRLIB_SetLightAmbient(0x111111FF);
         GRRLIB_SetLightDiff(0, (guVector){0.0f, 64.0f, 0.0f}, 20.0f, 1.0f, 0xCCCCCCFF);
 
         GX_SetCullMode(GX_CULL_FRONT);
 
-        node_number = 0;
+        GRRLIB_ObjectViewBegin();
+        GRRLIB_ObjectViewRotate(0, 0, 0);
+        GRRLIB_ObjectViewScale(512, 16, 512);
+        GRRLIB_ObjectViewTrans(0, -64, 0);
+        GRRLIB_ObjectViewEnd();
 
-        for (int i=0;i<10;i++) {
-            for (int j=0;j<10;j++) {
-                for (int k=0;k<8;k++) {
+        GRRLIB_DrawCube(1, 1, GRRLIB_BLACK);
+
+        node_number = 0;
+        int nodes_drawn = 0;
+
+        for (int x=0;x<32;x++) {
+            for (int z=0;z<32;z++) {
+                for (int y=0;y<8;y++) {
                     node_number++;
 
-                    if (nodes[node_number] == 0) {
+                    if (nodes[node_number] == 0 || nodes_drawn >= 255) {
                         continue;
                     }
                     
-                    float cube_x = i * 16 - 64;
-                    float cube_y = k * -16;
-                    float cube_z = j * 16 - 64;
+                    float cube_x = x * 16 - 64;
+                    float cube_y = y * -16;
+                    float cube_z = z * 16 - 64;
                     
                     // Only draw if visible
                     if (!is_cube_visible(cube_x, cube_y, cube_z)) {
@@ -181,6 +186,8 @@ int main(int argc, char **argv) {
                     GRRLIB_ObjectViewTrans(cube_x, cube_y, cube_z);
                     GRRLIB_ObjectViewEnd();
 
+                    nodes_drawn++;
+
                     if (nodes[node_number] == 1) {
                         GRRLIB_DrawCube(1, 1, GRRLIB_GREEN);
                     }
@@ -192,11 +199,12 @@ int main(int argc, char **argv) {
         }
 
         // UI
-
         GX_SetCullMode(GX_CULL_NONE);
         GRRLIB_2dMode();
         draw_wiimotes();
 
+        GRRLIB_Printf(0, 50, tex_BMfont5, GRRLIB_WHITE, 1, "x %f y %f z %f", camera_x, camera_y, camera_z);
+        GRRLIB_Printf(250, 225, tex_BMfont5, GRRLIB_WHITE, 1, "nodes_drawn %d", nodes_drawn);
         GRRLIB_Render();
     }
 
@@ -242,5 +250,5 @@ bool is_cube_visible(float cube_x, float cube_y, float cube_z) {
     // Dot product with look direction
     float dot = dx * camera_look_x + dy * camera_look_y + dz * camera_look_z;
     
-    return (dot > 0);
+    return (dot > 1 && dot < 512);
 }

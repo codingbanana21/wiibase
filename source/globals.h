@@ -1,2 +1,2 @@
 #pragma once
-#define MAP_SIZE 4096
+#define MAP_SIZE 8193
