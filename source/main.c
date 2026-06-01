@@ -25,6 +25,7 @@ GRRLIB_texImg *tex_shot;
 #define GRRLIB_YELLOW 0xFFFF00FF
 
 void draw_wiimotes();
+bool is_cube_visible(float cube_x, float cube_y, float cube_z);
 
 bool project_running = true;
 
@@ -32,11 +33,18 @@ int ui_number = 0;
 int background_color = 0;
 int frame = 0;
 
+// camera setup
 float camera_x = 0.0f;
-float camera_y = 128.0f;
+float camera_y = 16.0f;
 float camera_z = 0.0f;
+
 float camera_rot_x = 0.0f;
 float camera_rot_y = 0.0f;
+
+float camera_look_x = 0.0f;
+float camera_look_y = 0.0f;
+float camera_look_z = 0.0f;
+
 
 uint8_t nodes[MAP_SIZE];
 
@@ -69,9 +77,10 @@ int main(int argc, char **argv) {
 
     int node_number = 0;
         
-    for (int i=0;i<8;i++) {
-        for (int j=0;j<8;j++) {
-            int hight = rand() % 6 + 2;
+    for (int i=0;i<16;i++) {
+        for (int j=0;j<16;j++) {
+            int hight = rand() % 5 + 2;
+            // int hight = 7;
             node_number += 8 - hight;
 
             nodes[node_number] = 1;
@@ -117,11 +126,15 @@ int main(int argc, char **argv) {
             camera_rot_y -= 0.03f;
         }
 
+        camera_look_x = sin(camera_rot_x);
+        camera_look_y = camera_rot_y;
+        camera_look_z = cos(camera_rot_x);
+
         GRRLIB_Camera3dSettings(camera_x, camera_y, camera_z, // pos
                         0, 1, 0,
-                        camera_x + sin(camera_rot_x), 
-                        camera_y + camera_rot_y, 
-                        camera_z + cos(camera_rot_x) // look at
+                        camera_x + camera_look_x, 
+                        camera_y + camera_look_y, 
+                        camera_z + camera_look_z // look at
                         );
 
         // background
@@ -138,12 +151,14 @@ int main(int argc, char **argv) {
 
         GRRLIB_3dMode(0.1, 1000, 45, 0,1);
         GRRLIB_SetLightAmbient(0x111111FF);
-        GRRLIB_SetLightDiff(0, (guVector){0.0f, 256.0f, 0.0f}, 20.0f, 1.0f, 0xCCCCCCFF);
+        GRRLIB_SetLightDiff(0, (guVector){0.0f, 64.0f, 0.0f}, 20.0f, 1.0f, 0xCCCCCCFF);
+
+        GX_SetCullMode(GX_CULL_FRONT);
 
         node_number = 0;
 
-        for (int i=0;i<8;i++) {
-            for (int j=0;j<8;j++) {
+        for (int i=0;i<10;i++) {
+            for (int j=0;j<10;j++) {
                 for (int k=0;k<8;k++) {
                     node_number++;
 
@@ -151,10 +166,19 @@ int main(int argc, char **argv) {
                         continue;
                     }
                     
+                    float cube_x = i * 16 - 64;
+                    float cube_y = k * -16;
+                    float cube_z = j * 16 - 64;
+                    
+                    // Only draw if visible
+                    if (!is_cube_visible(cube_x, cube_y, cube_z)) {
+                        continue;
+                    }
+                    
                     GRRLIB_ObjectViewBegin();
                     GRRLIB_ObjectViewRotate(0, 0, 0);
                     GRRLIB_ObjectViewScale(16, 16, 16);
-                    GRRLIB_ObjectViewTrans(i * 16 - 64, k * -16, j * 16 - 64);
+                    GRRLIB_ObjectViewTrans(cube_x, cube_y, cube_z);
                     GRRLIB_ObjectViewEnd();
 
                     if (nodes[node_number] == 1) {
@@ -168,6 +192,8 @@ int main(int argc, char **argv) {
         }
 
         // UI
+
+        GX_SetCullMode(GX_CULL_NONE);
         GRRLIB_2dMode();
         draw_wiimotes();
 
@@ -204,4 +230,17 @@ void draw_wiimotes() {
             GRRLIB_DrawImg(data->ir.x, data->ir.y, tex_shot, 1, 0.15, 0.15, GRRLIB_YELLOW);
         }
     }
+}
+
+
+bool is_cube_visible(float cube_x, float cube_y, float cube_z) {
+    // Direction from camera to cube
+    float dx = cube_x - camera_x;
+    float dy = cube_y - camera_y;
+    float dz = cube_z - camera_z;
+    
+    // Dot product with look direction
+    float dot = dx * camera_look_x + dy * camera_look_y + dz * camera_look_z;
+    
+    return (dot > 0);
 }

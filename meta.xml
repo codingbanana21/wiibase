@@ -1,12 +1,12 @@
-<?xml version="0.0.1" encoding="UTF-8" standalone="yes"?>
-<app version="0.0.1">
-  <name>Wiibase</name>
+<?xml version="0.1.0" encoding="UTF-8" standalone="yes"?>
+<app version="0.1.0">
+  <name>Wiicraft</name>
   <coder>codingbanana217</coder>
-  <version>0.0.1</version>
+  <version>0.1.0</version>
   <release_date>202605</release_date>
-  <short_description>Text</short_description>
+  <short_description>Wiicraft</short_description>
   <long_description>
-Text
+Wiicraft
 
 Controls:
 
