@@ -17,16 +17,17 @@ GRRLIB_texImg *tex_BMfont5;
 GRRLIB_texImg *tex_shot;
 
 // colors
-#define GRRLIB_BLACK  0x000000FF
+#define GRRLIB_BLACK  0x000000ff
 #define GRRLIB_WHITE  0xFFFFFFFF
-#define GRRLIB_RED    0xFF0000FF
-#define GRRLIB_GREEN  0x00FF00FF
-#define GRRLIB_BLUE   0x0000FFFF
-#define GRRLIB_YELLOW 0xFFFF00FF
+#define GRRLIB_RED    0xff0000ff
+#define GRRLIB_GREEN  0x00ff00ff
+#define GRRLIB_BLUE   0x0000ffff
+#define GRRLIB_YELLOW 0xffff00ff
 
 void player_input();
 void draw_wiimotes();
 bool is_node_visible(float node_x, float node_y, float node_z);
+float clamp(float value, float min, float max);
 
 bool project_running = true;
 
@@ -37,6 +38,8 @@ unsigned int frame = 0;
 float player_x = 256.0f;
 float player_y = 0.0f;
 float player_z = 256.0f;
+
+int view_range = 4;
 
 float camera_rot_x = 0.0f;
 float camera_rot_y = 1.0f;
@@ -102,10 +105,6 @@ int main(int argc, char **argv) {
         frame++;
         player_input();
 
-        // if (player_x > 448.0) {
-        //     player_x = 64;
-        // }
-
         const int player_node_x = player_x / 16.0;
         const int player_node_z = player_z / 16.0;
 
@@ -118,28 +117,22 @@ int main(int argc, char **argv) {
 
         // background
 		GRRLIB_2dMode();
-        GRRLIB_FillScreen(GRRLIB_BLUE);
+        GRRLIB_FillScreen(0x4578d1ff);
 
         GRRLIB_3dMode(0.1, 1000, 70, 0,1);
         GRRLIB_SetLightAmbient(0x111111FF);
-        GRRLIB_SetLightDiff(0, (guVector){0.0f, 64.0f, 0.0f}, 20.0f, 1.0f, 0xCCCCCCFF);
+        GRRLIB_SetLightDiff(0, (guVector){player_x, 64.0f, player_z}, 50.0f, 1.0f, 0xffffffff);
 
         GX_SetCullMode(GX_CULL_FRONT);
 
-        GRRLIB_ObjectViewBegin();
-        GRRLIB_ObjectViewRotate(0, 0, 0);
-        GRRLIB_ObjectViewScale(1024, 16, 1024);
-        GRRLIB_ObjectViewTrans(0, -128, 0);
-        GRRLIB_ObjectViewEnd();
-
-        GRRLIB_DrawCube(1, 1, GRRLIB_BLACK);
-
         int nodes_drawn = 0;
 
-        for (int x=player_node_x-4;x<player_node_x+4;x++) {
-            for (int z=player_node_z-4;z<player_node_z+4;z++) {
+        // draw map
+        for (int x=player_node_x - view_range;x<player_node_x + view_range;x++) {
+            for (int z=player_node_z - view_range;z<player_node_z + view_range;z++) {
                 for (int y=0;y<8;y++) {
-                    node_number = (x * 256) + (z * 8) + (y);
+                    
+                    node_number = (clamp(x,0,31) * 256) + (clamp(z,0,31) * 8) + (y);
 
                     if (node_number > MAP_SIZE) {
                         return -1;
@@ -167,10 +160,10 @@ int main(int argc, char **argv) {
                     nodes_drawn++;
 
                     if (nodes[node_number] == 1) {
-                        GRRLIB_DrawCube(1, 1, GRRLIB_GREEN);
+                        GRRLIB_DrawCube(1, 1, 0x228e13ff);
                     }
                     else if (nodes[node_number] == 2) {
-                        GRRLIB_DrawCube(1, 1, 0x886400FF);
+                        GRRLIB_DrawCube(1, 1, 0x352608ff);
                     }    
                 }
             }
@@ -181,8 +174,8 @@ int main(int argc, char **argv) {
         GRRLIB_2dMode();
         draw_wiimotes();
 
-        GRRLIB_Printf(0, 50, tex_BMfont5, GRRLIB_WHITE, 1, "x %f y %f z %f", player_x, player_y, player_z);
-        GRRLIB_Printf(250, 225, tex_BMfont5, GRRLIB_WHITE, 1, "nodes_drawn %d", nodes_drawn);
+        GRRLIB_Printf(0, 0, tex_BMfont5, GRRLIB_WHITE, 1, "x %f y %f z %f", player_x, player_y, player_z);
+        GRRLIB_Printf(0, 25, tex_BMfont5, GRRLIB_WHITE, 1, "nodes_drawn %d", nodes_drawn);
         GRRLIB_Render();
     }
 
@@ -268,4 +261,11 @@ bool is_node_visible(float node_x, float node_y, float node_z) {
     float dot = dx * camera_look_x + dy * camera_look_y + dz * camera_look_z;
     
     return (dot > 1 && dot < 512);
+}
+
+
+float clamp(float value, float min, float max) {
+    if (value < min) return min;
+    if (value > max) return max;
+    return value;
 }
