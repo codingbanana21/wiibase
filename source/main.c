@@ -25,24 +25,20 @@ GRRLIB_texImg *tex_shot;
 #define GRRLIB_YELLOW 0xFFFF00FF
 
 void draw_wiimotes();
-bool is_cube_visible(float cube_x, float cube_y, float cube_z);
+bool is_node_visible(float node_x, float node_y, float node_z, float camera_look_x, float camera_look_y, float camera_look_z);
 
 bool project_running = true;
 
 int ui_number = 0;
-int frame = 0;
+unsigned int frame = 0;
 
 // camera setup
-float camera_x = 0.0f;
-float camera_y = 0.0f;
-float camera_z = 0.0f;
+float player_x = 256.0f;
+float player_y = 0.0f;
+float player_z = 256.0f;
 
 float camera_rot_x = 0.0f;
 float camera_rot_y = 1.0f;
-
-float camera_look_x;
-float camera_look_y;
-float camera_look_z;
 
 
 uint8_t nodes[MAP_SIZE];
@@ -74,14 +70,14 @@ int main(int argc, char **argv) {
         nodes[i] = 0;
     }
 
-    int node_number = 0;
+    unsigned int node_number = 0;
         
     for (int i=0;i<32;i++) {
         for (int j=0;j<32;j++) {
             int hight = rand() % 5 + 2;
-            // int hight = 7;
             node_number += 8 - hight;
 
+            // make grass
             nodes[node_number] = 1;
             node_number++;
             hight--;
@@ -93,6 +89,10 @@ int main(int argc, char **argv) {
                 hight--;
             }
         }
+    }
+
+    if (node_number > MAP_SIZE) {
+        return -1;
     }
 	
     while (project_running) {
@@ -112,33 +112,41 @@ int main(int argc, char **argv) {
         }
 
         if (WPAD_ButtonsHeld(0) & WPAD_BUTTON_RIGHT) {
-            camera_rot_x -= 0.02f;
+            camera_rot_x -= 0.03f;
         }
         else if (WPAD_ButtonsHeld(0) & WPAD_BUTTON_LEFT) {
-            camera_rot_x += 0.02f;
+            camera_rot_x += 0.03f;
         }
 
         if (WPAD_ButtonsHeld(0) & WPAD_BUTTON_UP) {
-            camera_rot_y += 0.02f;
+            camera_rot_y += 0.03f;
         }
         else if (WPAD_ButtonsHeld(0) & WPAD_BUTTON_DOWN) {
-            camera_rot_y -= 0.02f;
+            camera_rot_y -= 0.03f;
         }
+
+        float camera_look_x = sin(camera_rot_x) * cos(camera_rot_y);
+        float camera_look_y = sin(camera_rot_y);
+        float camera_look_z = cos(camera_rot_x) * cos(camera_rot_y);
 
         if (WPAD_ButtonsHeld(0) & WPAD_BUTTON_A) {
-            camera_x += camera_look_x;
-            camera_z += camera_look_z;
+            player_x += camera_look_x;
+            player_z += camera_look_z;
+        }
+        else if (WPAD_ButtonsHeld(0) & WPAD_BUTTON_B) {
+            player_x -= camera_look_x;
+            player_z -= camera_look_z;
         }
 
-        camera_look_x = sin(camera_rot_x) * cos(camera_rot_y);
-        camera_look_y = sin(camera_rot_y);
-        camera_look_z = cos(camera_rot_x) * cos(camera_rot_y);
 
-        GRRLIB_Camera3dSettings(camera_x, camera_y, camera_z, // pos
+        const int player_node_x = player_x / 16.0;
+        const int player_node_z = player_z / 16.0;
+
+        GRRLIB_Camera3dSettings(player_x, player_y, player_z, 
                         0, 1, 0,
-                        camera_x + camera_look_x, 
-                        camera_y + camera_look_y, 
-                        camera_z + camera_look_z // look at
+                        player_x + camera_look_x, 
+                        player_y + camera_look_y, 
+                        player_z + camera_look_z
                         );
 
         // background
@@ -153,37 +161,40 @@ int main(int argc, char **argv) {
 
         GRRLIB_ObjectViewBegin();
         GRRLIB_ObjectViewRotate(0, 0, 0);
-        GRRLIB_ObjectViewScale(512, 16, 512);
-        GRRLIB_ObjectViewTrans(0, -64, 0);
+        GRRLIB_ObjectViewScale(1024, 16, 1024);
+        GRRLIB_ObjectViewTrans(0, -128, 0);
         GRRLIB_ObjectViewEnd();
 
         GRRLIB_DrawCube(1, 1, GRRLIB_BLACK);
 
-        node_number = 0;
         int nodes_drawn = 0;
 
-        for (int x=0;x<32;x++) {
-            for (int z=0;z<32;z++) {
+        for (int x=player_node_x-4;x<player_node_x+4;x++) {
+            for (int z=player_node_z-4;z<player_node_z+4;z++) {
                 for (int y=0;y<8;y++) {
-                    node_number++;
+                    node_number = (x * 256) + (z * 8) + (y);
+
+                    if (node_number > MAP_SIZE) {
+                        return -1;
+                    }
 
                     if (nodes[node_number] == 0 || nodes_drawn >= 255) {
                         continue;
                     }
-                    
-                    float cube_x = x * 16 - 64;
-                    float cube_y = y * -16;
-                    float cube_z = z * 16 - 64;
-                    
+
+                    const float node_x = x * 16;
+                    const float node_y = y * -16;
+                    const float node_z = z * 16;   
+
                     // Only draw if visible
-                    if (!is_cube_visible(cube_x, cube_y, cube_z)) {
+                    if (!is_node_visible(node_x, node_y, node_z, camera_look_x, camera_look_y, camera_look_z)) {
                         continue;
                     }
                     
                     GRRLIB_ObjectViewBegin();
                     GRRLIB_ObjectViewRotate(0, 0, 0);
                     GRRLIB_ObjectViewScale(16, 16, 16);
-                    GRRLIB_ObjectViewTrans(cube_x, cube_y, cube_z);
+                    GRRLIB_ObjectViewTrans(node_x, node_y, node_z);
                     GRRLIB_ObjectViewEnd();
 
                     nodes_drawn++;
@@ -193,7 +204,7 @@ int main(int argc, char **argv) {
                     }
                     else if (nodes[node_number] == 2) {
                         GRRLIB_DrawCube(1, 1, 0x886400FF);
-                    }
+                    }    
                 }
             }
         }
@@ -203,7 +214,7 @@ int main(int argc, char **argv) {
         GRRLIB_2dMode();
         draw_wiimotes();
 
-        GRRLIB_Printf(0, 50, tex_BMfont5, GRRLIB_WHITE, 1, "x %f y %f z %f", camera_x, camera_y, camera_z);
+        GRRLIB_Printf(0, 50, tex_BMfont5, GRRLIB_WHITE, 1, "x %f y %f z %f", player_x, player_y, player_z);
         GRRLIB_Printf(250, 225, tex_BMfont5, GRRLIB_WHITE, 1, "nodes_drawn %d", nodes_drawn);
         GRRLIB_Render();
     }
@@ -241,11 +252,11 @@ void draw_wiimotes() {
 }
 
 
-bool is_cube_visible(float cube_x, float cube_y, float cube_z) {
-    // Direction from camera to cube
-    float dx = cube_x - camera_x;
-    float dy = cube_y - camera_y;
-    float dz = cube_z - camera_z;
+bool is_node_visible(float node_x, float node_y, float node_z, float camera_look_x, float camera_look_y, float camera_look_z) {
+    // Direction from camera to node
+    float dx = node_x - player_x;
+    float dy = node_y - player_y;
+    float dz = node_z - player_z;
     
     // Dot product with look direction
     float dot = dx * camera_look_x + dy * camera_look_y + dz * camera_look_z;
