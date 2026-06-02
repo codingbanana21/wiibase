@@ -24,8 +24,9 @@ GRRLIB_texImg *tex_shot;
 #define GRRLIB_BLUE   0x0000FFFF
 #define GRRLIB_YELLOW 0xFFFF00FF
 
+void player_input();
 void draw_wiimotes();
-bool is_node_visible(float node_x, float node_y, float node_z, float camera_look_x, float camera_look_y, float camera_look_z);
+bool is_node_visible(float node_x, float node_y, float node_z);
 
 bool project_running = true;
 
@@ -40,6 +41,9 @@ float player_z = 256.0f;
 float camera_rot_x = 0.0f;
 float camera_rot_y = 1.0f;
 
+float camera_look_x;
+float camera_look_y;
+float camera_look_z;
 
 uint8_t nodes[MAP_SIZE];
 
@@ -83,7 +87,6 @@ int main(int argc, char **argv) {
             hight--;
 
             while (hight > 0) {
-                // nodes[node_number] = rand() % 2 + 1;
                 nodes[node_number] = 2;
                 node_number++;
                 hight--;
@@ -97,47 +100,11 @@ int main(int argc, char **argv) {
 	
     while (project_running) {
         frame++;
+        player_input();
 
-        WPAD_ScanPads();
-
-        for (int wiimote = 0; wiimote <= 3; wiimote++) {
-            WPADData* data = WPAD_Data(wiimote);
-
-            if(!data->data_present) {
-                continue;
-            }
-            if (WPAD_ButtonsDown(wiimote) & WPAD_BUTTON_HOME) {
-                project_running = false;
-            }
-        }
-
-        if (WPAD_ButtonsHeld(0) & WPAD_BUTTON_RIGHT) {
-            camera_rot_x -= 0.03f;
-        }
-        else if (WPAD_ButtonsHeld(0) & WPAD_BUTTON_LEFT) {
-            camera_rot_x += 0.03f;
-        }
-
-        if (WPAD_ButtonsHeld(0) & WPAD_BUTTON_UP) {
-            camera_rot_y += 0.03f;
-        }
-        else if (WPAD_ButtonsHeld(0) & WPAD_BUTTON_DOWN) {
-            camera_rot_y -= 0.03f;
-        }
-
-        float camera_look_x = sin(camera_rot_x) * cos(camera_rot_y);
-        float camera_look_y = sin(camera_rot_y);
-        float camera_look_z = cos(camera_rot_x) * cos(camera_rot_y);
-
-        if (WPAD_ButtonsHeld(0) & WPAD_BUTTON_A) {
-            player_x += camera_look_x;
-            player_z += camera_look_z;
-        }
-        else if (WPAD_ButtonsHeld(0) & WPAD_BUTTON_B) {
-            player_x -= camera_look_x;
-            player_z -= camera_look_z;
-        }
-
+        // if (player_x > 448.0) {
+        //     player_x = 64;
+        // }
 
         const int player_node_x = player_x / 16.0;
         const int player_node_z = player_z / 16.0;
@@ -187,7 +154,7 @@ int main(int argc, char **argv) {
                     const float node_z = z * 16;   
 
                     // Only draw if visible
-                    if (!is_node_visible(node_x, node_y, node_z, camera_look_x, camera_look_y, camera_look_z)) {
+                    if (!is_node_visible(node_x, node_y, node_z)) {
                         continue;
                     }
                     
@@ -226,6 +193,45 @@ int main(int argc, char **argv) {
 }
 
 
+void player_input() {
+    WPAD_ScanPads();
+
+    if (WPAD_ButtonsDown(0) & WPAD_BUTTON_HOME) {
+        project_running = false;
+    }
+
+    if (WPAD_ButtonsHeld(0) & WPAD_BUTTON_RIGHT) {
+        camera_rot_x -= 0.03f;
+    }
+    
+    if (WPAD_ButtonsHeld(0) & WPAD_BUTTON_LEFT) {
+        camera_rot_x += 0.03f;
+    }
+
+    if (WPAD_ButtonsHeld(0) & WPAD_BUTTON_UP) {
+        camera_rot_y += 0.03f;
+    }
+
+    if (WPAD_ButtonsHeld(0) & WPAD_BUTTON_DOWN) {
+        camera_rot_y -= 0.03f;
+    }
+
+    camera_look_x = sin(camera_rot_x) * cos(camera_rot_y);
+    camera_look_y = sin(camera_rot_y);
+    camera_look_z = cos(camera_rot_x) * cos(camera_rot_y);
+
+    if (WPAD_ButtonsHeld(0) & WPAD_BUTTON_A) {
+        player_x += camera_look_x;
+        player_z += camera_look_z;
+    }
+    
+    if (WPAD_ButtonsHeld(0) & WPAD_BUTTON_B) {
+        player_x -= camera_look_x;
+        player_z -= camera_look_z;
+    }
+}
+
+
 void draw_wiimotes() {
     WPAD_ScanPads();
 
@@ -252,7 +258,7 @@ void draw_wiimotes() {
 }
 
 
-bool is_node_visible(float node_x, float node_y, float node_z, float camera_look_x, float camera_look_y, float camera_look_z) {
+bool is_node_visible(float node_x, float node_y, float node_z) {
     // Direction from camera to node
     float dx = node_x - player_x;
     float dy = node_y - player_y;
