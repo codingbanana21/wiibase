@@ -31,7 +31,6 @@ float clamp(float value, float min, float max);
 
 bool project_running = true;
 
-int ui_number = 0;
 unsigned int frame = 0;
 
 // camera setup
@@ -39,7 +38,9 @@ float player_x = 256.0f;
 float player_y = 0.0f;
 float player_z = 256.0f;
 
-int view_range = 4;
+const int view_range = 4;
+const float player_speed = 0.5f;
+float velocity_y = 0.0f;
 
 float camera_rot_x = 0.0f;
 float camera_rot_y = 1.0f;
@@ -48,7 +49,8 @@ float camera_look_x;
 float camera_look_y;
 float camera_look_z;
 
-uint8_t nodes[MAP_SIZE];
+// uint8_t nodes[MAP_SIZE];
+uint8_t *nodes;
 
 
 int main(int argc, char **argv) {
@@ -72,6 +74,12 @@ int main(int argc, char **argv) {
     GRRLIB_FillScreen(GRRLIB_BLACK);
     GRRLIB_Printf(250, 200, tex_BMfont5, GRRLIB_WHITE, 1, "loading...");
     GRRLIB_Render();
+
+    nodes = malloc(MAP_SIZE * sizeof(uint8_t));
+
+    if (nodes == NULL) {
+        goto cleanup;
+    }
 
     for (int i=0;i<MAP_SIZE;i++) {
         nodes[i] = 0;
@@ -103,10 +111,22 @@ int main(int argc, char **argv) {
 	
     while (project_running) {
         frame++;
-        player_input();
 
-        const int player_node_x = player_x / 16.0;
-        const int player_node_z = player_z / 16.0;
+        player_input();
+        velocity_y -= 0.03f;
+        player_y += velocity_y;
+
+        const int player_node_x = round(player_x / 16.0);
+        const int player_node_y = round(player_y / 16.0);
+        const int player_node_z = round(player_z / 16.0);
+
+        node_number = (clamp(player_node_x,0,31) * 256) + (clamp(player_node_z,0,31) * 8) + clamp(-player_node_y,0,7);
+        
+        if (nodes[node_number] != 0) {
+            velocity_y = 1.5f;
+        }
+
+        nodes[node_number] = 0;
 
         GRRLIB_Camera3dSettings(player_x, player_y, player_z, 
                         0, 1, 0,
@@ -132,7 +152,7 @@ int main(int argc, char **argv) {
             for (int z=player_node_z - view_range;z<player_node_z + view_range;z++) {
                 for (int y=0;y<8;y++) {
                     
-                    node_number = (clamp(x,0,31) * 256) + (clamp(z,0,31) * 8) + (y);
+                    node_number = (clamp(x,0,31) * 256) + (clamp(z,0,31) * 8) + clamp(y,0,7);
 
                     if (node_number > MAP_SIZE) {
                         return -1;
@@ -169,16 +189,27 @@ int main(int argc, char **argv) {
             }
         }
 
+        // node_number = (clamp(camera_look_x / 16.0,0,31) * 256) + (clamp(camera_look_x / 16.0,0,31) * 8) + (4);
+        // nodes[node_number] = 0;
+
+
         // UI
         GX_SetCullMode(GX_CULL_NONE);
         GRRLIB_2dMode();
         draw_wiimotes();
 
+        node_number = (clamp(player_node_x,0,31) * 256) + (clamp(player_node_z,0,31) * 8) + clamp(-player_node_y,0,7);
+
         GRRLIB_Printf(0, 0, tex_BMfont5, GRRLIB_WHITE, 1, "x %f y %f z %f", player_x, player_y, player_z);
-        GRRLIB_Printf(0, 25, tex_BMfont5, GRRLIB_WHITE, 1, "nodes_drawn %d", nodes_drawn);
+        GRRLIB_Printf(0, 25, tex_BMfont5, GRRLIB_WHITE, 1, "Node x %d y %d z %d", player_node_x, player_node_y, player_node_z);
+        GRRLIB_Printf(0, 50, tex_BMfont5, GRRLIB_WHITE, 1, "nodes_drawn %d", nodes_drawn);
+        GRRLIB_Printf(0, 75, tex_BMfont5, GRRLIB_WHITE, 1, "debug %d", nodes[node_number]);
         GRRLIB_Render();
     }
 
+    free(nodes);
+    nodes = NULL;
+    cleanup:
     GRRLIB_FreeTexture(tex_shot);
     GRRLIB_FreeTexture(tex_BMfont5);
     GRRLIB_Exit();
@@ -209,18 +240,18 @@ void player_input() {
         camera_rot_y -= 0.03f;
     }
 
-    camera_look_x = sin(camera_rot_x) * cos(camera_rot_y);
-    camera_look_y = sin(camera_rot_y);
-    camera_look_z = cos(camera_rot_x) * cos(camera_rot_y);
+    camera_look_x = sin(camera_rot_x) * cos(camera_rot_y) * 3;
+    camera_look_y = sin(camera_rot_y) * 3;
+    camera_look_z = cos(camera_rot_x) * cos(camera_rot_y) * 3;
 
     if (WPAD_ButtonsHeld(0) & WPAD_BUTTON_A) {
-        player_x += camera_look_x;
-        player_z += camera_look_z;
+        player_x += camera_look_x * player_speed;
+        player_z += camera_look_z * player_speed;
     }
     
     if (WPAD_ButtonsHeld(0) & WPAD_BUTTON_B) {
-        player_x -= camera_look_x;
-        player_z -= camera_look_z;
+        player_x -= camera_look_x * player_speed;
+        player_z -= camera_look_z * player_speed;
     }
 }
 
