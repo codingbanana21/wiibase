@@ -113,20 +113,24 @@ int main(int argc, char **argv) {
         frame++;
 
         player_input();
-        velocity_y -= 0.03f;
-        player_y += velocity_y;
 
         const int player_node_x = round(player_x / 16.0);
         const int player_node_y = round(player_y / 16.0);
         const int player_node_z = round(player_z / 16.0);
 
         node_number = (clamp(player_node_x,0,31) * 256) + (clamp(player_node_z,0,31) * 8) + clamp(-player_node_y,0,7);
-        
+
         if (nodes[node_number] != 0) {
-            velocity_y = 1.5f;
+            velocity_y = 0.0f;
+            if (WPAD_ButtonsDown(0) & WPAD_BUTTON_1) {
+                velocity_y = 2.0f;
+            }
+        }
+        else {
+            velocity_y -= 0.03f;
         }
 
-        nodes[node_number] = 0;
+        player_y += velocity_y;
 
         GRRLIB_Camera3dSettings(player_x, player_y, player_z, 
                         0, 1, 0,
@@ -147,7 +151,7 @@ int main(int argc, char **argv) {
 
         int nodes_drawn = 0;
 
-        // draw map
+        // draw map of nodes
         for (int x=player_node_x - view_range;x<player_node_x + view_range;x++) {
             for (int z=player_node_z - view_range;z<player_node_z + view_range;z++) {
                 for (int y=0;y<8;y++) {
@@ -189,21 +193,14 @@ int main(int argc, char **argv) {
             }
         }
 
-        // node_number = (clamp(camera_look_x / 16.0,0,31) * 256) + (clamp(camera_look_x / 16.0,0,31) * 8) + (4);
-        // nodes[node_number] = 0;
-
-
         // UI
         GX_SetCullMode(GX_CULL_NONE);
         GRRLIB_2dMode();
         draw_wiimotes();
 
-        node_number = (clamp(player_node_x,0,31) * 256) + (clamp(player_node_z,0,31) * 8) + clamp(-player_node_y,0,7);
-
         GRRLIB_Printf(0, 0, tex_BMfont5, GRRLIB_WHITE, 1, "x %f y %f z %f", player_x, player_y, player_z);
         GRRLIB_Printf(0, 25, tex_BMfont5, GRRLIB_WHITE, 1, "Node x %d y %d z %d", player_node_x, player_node_y, player_node_z);
         GRRLIB_Printf(0, 50, tex_BMfont5, GRRLIB_WHITE, 1, "nodes_drawn %d", nodes_drawn);
-        GRRLIB_Printf(0, 75, tex_BMfont5, GRRLIB_WHITE, 1, "debug %d", nodes[node_number]);
         GRRLIB_Render();
     }
 
