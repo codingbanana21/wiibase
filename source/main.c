@@ -18,7 +18,7 @@ GRRLIB_texImg *tex_shot;
 
 // colors
 #define GRRLIB_BLACK  0x000000ff
-#define GRRLIB_WHITE  0xFFFFFFFF
+#define GRRLIB_WHITE  0xffffffff
 #define GRRLIB_RED    0xff0000ff
 #define GRRLIB_GREEN  0x00ff00ff
 #define GRRLIB_BLUE   0x0000ffff
@@ -39,6 +39,7 @@ float player_y = 0.0f;
 float player_z = 256.0f;
 
 const int view_range = 4;
+const int node_size = 16;
 const float player_speed = 0.5f;
 float velocity_y = 0.0f;
 
@@ -114,16 +115,17 @@ int main(int argc, char **argv) {
 
         player_input();
 
-        const int player_node_x = round(player_x / 16.0);
-        const int player_node_y = round(player_y / 16.0);
-        const int player_node_z = round(player_z / 16.0);
+        const int player_node_x = round(player_x / node_size);
+        const int player_node_y = round(player_y / node_size);
+        const int player_node_z = round(player_z / node_size);
 
-        node_number = (clamp(player_node_x,0,31) * 256) + (clamp(player_node_z,0,31) * 8) + clamp(-player_node_y,0,7);
+        node_number = (clamp(player_node_x,0,31) * 256) + (clamp(player_node_z,0,31) * 8) + clamp(-player_node_y + 2,0,7);
 
         if (nodes[node_number] != 0) {
             velocity_y = 0.0f;
-            if (WPAD_ButtonsDown(0) & WPAD_BUTTON_1) {
-                velocity_y = 2.0f;
+            player_y = player_node_y * node_size + node_size / 2.0f;
+            if (WPAD_ButtonsHeld(0) & WPAD_BUTTON_1) {
+                velocity_y = 1.0f;
             }
         }
         else {
@@ -132,18 +134,13 @@ int main(int argc, char **argv) {
 
         player_y += velocity_y;
 
-        GRRLIB_Camera3dSettings(player_x, player_y, player_z, 
-                        0, 1, 0,
-                        player_x + camera_look_x, 
-                        player_y + camera_look_y, 
-                        player_z + camera_look_z
-                        );
+        GRRLIB_Camera3dSettings(player_x,player_y,player_z,0,1,0,player_x + camera_look_x,player_y + camera_look_y,player_z + camera_look_z);
 
         // background
 		GRRLIB_2dMode();
         GRRLIB_FillScreen(0x4578d1ff);
 
-        GRRLIB_3dMode(0.1, 1000, 70, 0,1);
+        GRRLIB_3dMode(0.1, 1000, 75, 0,1);
         GRRLIB_SetLightAmbient(0x111111FF);
         GRRLIB_SetLightDiff(0, (guVector){player_x, 64.0f, player_z}, 50.0f, 1.0f, 0xffffffff);
 
@@ -166,9 +163,9 @@ int main(int argc, char **argv) {
                         continue;
                     }
 
-                    const float node_x = x * 16;
-                    const float node_y = y * -16;
-                    const float node_z = z * 16;   
+                    const float node_x = x * node_size;
+                    const float node_y = y * -node_size;
+                    const float node_z = z * node_size;   
 
                     // Only draw if visible
                     if (!is_node_visible(node_x, node_y, node_z)) {
@@ -177,7 +174,7 @@ int main(int argc, char **argv) {
                     
                     GRRLIB_ObjectViewBegin();
                     GRRLIB_ObjectViewRotate(0, 0, 0);
-                    GRRLIB_ObjectViewScale(16, 16, 16);
+                    GRRLIB_ObjectViewScale(node_size, node_size, node_size);
                     GRRLIB_ObjectViewTrans(node_x, node_y, node_z);
                     GRRLIB_ObjectViewEnd();
 
