@@ -82,16 +82,18 @@ int main(int argc, char **argv) {
         goto cleanup;
     }
 
+    // fill map with air
     for (int i=0;i<MAP_SIZE;i++) {
         nodes[i] = 0;
     }
 
+    // make map
     unsigned int node_number = 0;
-        
+
     for (int i=0;i<32;i++) {
         for (int j=0;j<32;j++) {
-            int hight = rand() % 5 + 2;
-            node_number += 8 - hight;
+            int hight = rand() % 5 + 8;
+            node_number += 16 - hight;
 
             // make grass
             nodes[node_number] = 1;
@@ -119,11 +121,13 @@ int main(int argc, char **argv) {
         const int player_node_y = round(player_y / node_size);
         const int player_node_z = round(player_z / node_size);
 
-        node_number = (clamp(player_node_x,0,31) * 256) + (clamp(player_node_z,0,31) * 8) + clamp(-player_node_y + 2,0,7);
+        node_number = (clamp(player_node_x,0,31) * 512) + (clamp(player_node_z,0,31) * 16) + clamp(-player_node_y + 2,0,15);
 
+        // jumping
         if (nodes[node_number] != 0) {
             velocity_y = 0.0f;
             player_y = player_node_y * node_size + node_size / 2.0f;
+
             if (WPAD_ButtonsHeld(0) & WPAD_BUTTON_1) {
                 velocity_y = 1.0f;
             }
@@ -132,9 +136,12 @@ int main(int argc, char **argv) {
             velocity_y -= 0.03f;
         }
 
+
         player_y += velocity_y;
 
-        GRRLIB_Camera3dSettings(player_x,player_y,player_z,0,1,0,player_x + camera_look_x,player_y + camera_look_y,player_z + camera_look_z);
+        GRRLIB_Camera3dSettings(player_x, player_y, player_z, 
+            0,1,0,
+            player_x + camera_look_x, player_y + camera_look_y, player_z + camera_look_z);
 
         // background
 		GRRLIB_2dMode();
@@ -149,11 +156,11 @@ int main(int argc, char **argv) {
         int nodes_drawn = 0;
 
         // draw map of nodes
-        for (int x=player_node_x - view_range;x<player_node_x + view_range;x++) {
-            for (int z=player_node_z - view_range;z<player_node_z + view_range;z++) {
-                for (int y=0;y<8;y++) {
+        for (int x=player_node_x - view_range; x<player_node_x + view_range; x++) {
+            for (int z=player_node_z - view_range; z<player_node_z + view_range; z++) {
+                for (int y= - player_node_y - view_range; y< - player_node_y + view_range; y++) {
                     
-                    node_number = (clamp(x,0,31) * 256) + (clamp(z,0,31) * 8) + clamp(y,0,7);
+                    node_number = (clamp(x,0,31) * 512) + (clamp(z,0,31) * 16) + clamp(y,0,15);
 
                     if (node_number > MAP_SIZE) {
                         return -1;
@@ -198,6 +205,13 @@ int main(int argc, char **argv) {
         GRRLIB_Printf(0, 0, tex_BMfont5, GRRLIB_WHITE, 1, "x %f y %f z %f", player_x, player_y, player_z);
         GRRLIB_Printf(0, 25, tex_BMfont5, GRRLIB_WHITE, 1, "Node x %d y %d z %d", player_node_x, player_node_y, player_node_z);
         GRRLIB_Printf(0, 50, tex_BMfont5, GRRLIB_WHITE, 1, "nodes_drawn %d", nodes_drawn);
+
+        node_number = (clamp(player_node_x,0,31) * 512) + (clamp(player_node_z,0,31) * 16) + clamp(-player_node_y + 2,0,15);
+        
+        GRRLIB_Printf(0, 75, tex_BMfont5, GRRLIB_WHITE, 1, "node number %d", node_number);
+
+        GRRLIB_Printf(0, 100, tex_BMfont5, GRRLIB_WHITE, 1, "what node %d", nodes[node_number]);
+
         GRRLIB_Render();
     }
 
@@ -219,10 +233,6 @@ void player_input() {
     if (WPAD_ButtonsDown(0) & WPAD_BUTTON_HOME) {
         project_running = false;
     }
-
-    // if (WPAD_ButtonsHeld(0) & WPAD_BUTTON_RIGHT) {
-    //     camera_rot_x -= 0.03f;
-    // }
 
     if (data->ir.x > 500.0f) {
         camera_rot_x -= 0.03f;
