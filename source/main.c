@@ -213,37 +213,43 @@ int main(int argc, char **argv) {
 
 void player_input() {
     WPAD_ScanPads();
+    WPADData* data = WPAD_Data(0);
+
 
     if (WPAD_ButtonsDown(0) & WPAD_BUTTON_HOME) {
         project_running = false;
     }
 
-    if (WPAD_ButtonsHeld(0) & WPAD_BUTTON_RIGHT) {
+    // if (WPAD_ButtonsHeld(0) & WPAD_BUTTON_RIGHT) {
+    //     camera_rot_x -= 0.03f;
+    // }
+
+    if (data->ir.x > 500.0f) {
         camera_rot_x -= 0.03f;
     }
     
-    if (WPAD_ButtonsHeld(0) & WPAD_BUTTON_LEFT) {
+    if (data->ir.x < 100.0f) {
         camera_rot_x += 0.03f;
     }
 
-    if (WPAD_ButtonsHeld(0) & WPAD_BUTTON_UP) {
-        camera_rot_y += 0.03f;
+    if (data->ir.y > 300.0f) {
+        camera_rot_y -= 0.03f;
     }
 
-    if (WPAD_ButtonsHeld(0) & WPAD_BUTTON_DOWN) {
-        camera_rot_y -= 0.03f;
+    if (data->ir.y < 100.0f) {
+        camera_rot_y += 0.03f;
     }
 
     camera_look_x = sin(camera_rot_x) * cos(camera_rot_y) * 3;
     camera_look_y = sin(camera_rot_y) * 3;
     camera_look_z = cos(camera_rot_x) * cos(camera_rot_y) * 3;
 
-    if (WPAD_ButtonsHeld(0) & WPAD_BUTTON_A) {
+    if (WPAD_ButtonsHeld(0) & WPAD_BUTTON_UP) {
         player_x += camera_look_x * player_speed;
         player_z += camera_look_z * player_speed;
     }
     
-    if (WPAD_ButtonsHeld(0) & WPAD_BUTTON_B) {
+    if (WPAD_ButtonsHeld(0) & WPAD_BUTTON_DOWN) {
         player_x -= camera_look_x * player_speed;
         player_z -= camera_look_z * player_speed;
     }
